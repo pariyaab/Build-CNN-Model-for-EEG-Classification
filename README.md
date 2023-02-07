@@ -16,7 +16,7 @@ Data augmentation can also be applied to vector data, such as text or numerical 
 * Noise injection: Adding random noise to the data to increase the variability of the training data.  
   
 All of these techniques aim to increase the diversity of the training data and reduce overfitting by introducing small variations to the input data.  
-### 1. Building Model
+### 2. Building Model
 Here, we want to build a CNN model that can process our data.  
 Before building the model, we should extract important feature of our data by specific methods, which is called feature extraction anf for ech (1280,2) we select 15 features by considering each channel separately. The feature that we have already extracted:  
 FEATURES = ['MIN', 'MAX', 'MEAN', 'RMS', 'VAR', 'STD', 'POWER', 'PEAK', 'P2P', 'CREST FACTOR',
@@ -24,3 +24,13 @@ FEATURES = ['MIN', 'MAX', 'MEAN', 'RMS', 'VAR', 'STD', 'POWER', 'PEAK', 'P2P', '
 Now we should build the model with 3 Conv1D layers and 2 Dense layers.  
 In the following step, we should concatenate our features (300,15,2) with the feature that our model have extracted. After that we should pass unique vectors to the classification layer in order to predict our labels.
 
+### 3. Results
+* after 20 epochs (3 Conv1D and 2 Dense layer and kernel = 5):
+  * Accuracy : 74%
+  * Recall: 0.357
+  * Precision: 0.588
+    
+* after 20 epochs (2 Conv1D and 2 Dense layer and kernel = 3):
+  * Accuracy : 64%
+  * Recall: 0.257
+  * Precision: 0.478
