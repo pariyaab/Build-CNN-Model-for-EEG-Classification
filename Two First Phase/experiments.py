@@ -38,8 +38,8 @@ x = np.concatenate((x_normal, x_seizure))
 print(len(x_normal[0]))
 print(len(x[0]))
 # y = np.concatenate((np.zeros((400, 1)), np.ones((100, 1))))
-# x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=seed, test_size=0.2)
-#
+x_train, x_test, y_train, y_test = train_test_split(x, y, random_state=seed, test_size=0.2)
+
 # print(len(x_train[0]))
 # print(np.unique(y_train))
 # clf = SVC(kernel='linear')
