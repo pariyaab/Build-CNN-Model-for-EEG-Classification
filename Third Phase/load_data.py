@@ -35,10 +35,13 @@ def augment_vector(vector, label):
     permuted_vector = np.random.permutation(vector)
     final_data = np.vstack([final_data, permuted_vector])
     final_label = np.vstack([final_label, numpy.array([label])])
+    smoothed_vector = np.convolve(vector, np.ones(5) / 5, mode='same')
+    final_data = np.vstack([final_data, smoothed_vector])
+    final_label = np.vstack([final_label, numpy.array([label])])
     return augmented_vector
 
 
-def build_vectors(file_names, seizures_starts, seizures_ends, folder):
+def build_vectors_with_seizures(file_names, seizures_starts, seizures_ends, folder, folder_number=1):
     global final_data, final_label
     for label in range(17, 19):
         for file_index in range(0, len(file_names)):
@@ -53,24 +56,60 @@ def build_vectors(file_names, seizures_starts, seizures_ends, folder):
             # data augmentation for seizure vectors
             augment_vector(seizures_vector, 1.0)
 
-            # find normal vectors from seizure files
-            normal_array = split_by_batch_size(load_data(file_name)[label][seizures_ends[file_index] * 256:], 5)[
-                           2: 2 + 256]
-            normal_vector = np.concatenate(normal_array)
+            if folder_number == 1:
+                # find normal vectors from seizure files
+                normal_array = split_by_batch_size(load_data(file_name)[label][seizures_ends[file_index] * 256:], 5)[
+                               2: 2 + 256]
+                normal_vector = np.concatenate(normal_array)
+                final_data = np.vstack([final_data, normal_vector])
+                final_label = np.vstack([final_label, numpy.array([0.0])])
+                augment_vector(normal_vector, 0.0)
+
+
+def build_vectors_without_seizures(file_names, folder):
+    global final_data, final_label
+    for label in range(17, 19):
+        for file_index in range(0, len(file_names)):
+            file_name = "Dataset/" + folder + "/" + folder + "_" + file_names[file_index] + ".edf"
+            array_normal_splitted = split_by_batch_size(load_data(file_name)[label], 5)[2:2 + 256]
+            normal_vector = np.concatenate(array_normal_splitted)
             final_data = np.vstack([final_data, normal_vector])
             final_label = np.vstack([final_label, numpy.array([0.0])])
             augment_vector(normal_vector, 0.0)
 
 
-def load_from_category_1():
-    file_names = ["03", "04", "15", "16", "18", "21", "26"]
+def load_from_category_2():
+    file_names_with_seizures = ["16", "19"]
     # Channel 17: FZ-CZ
     # Channel 18: CZ-PZ
-    seizures_starts = [2996, 1467, 1732, 1015, 1720, 327, 1862]
-    seizures_ends = [3036, 1494, 1772, 1066, 1810, 420, 1963]
-    build_vectors(file_names, seizures_starts, seizures_ends, "chb01")
+    seizures_starts = [130, 3369]
+    seizures_ends = [212, 3378]
+    build_vectors_with_seizures(file_names_with_seizures, seizures_starts, seizures_ends, "chb02")
+    file_names_without_seizures = ["08", "14"]
+    build_vectors_without_seizures(file_names=file_names_without_seizures, folder="chb02")
+
+
+def load_from_category_1():
+    file_names_with_seizures = ["03", "04", "15", "16", "18", "21", "26"]
+    # Channel 17: FZ-CZ
+    # Channel 18: CZ-PZ
+    seizures_starts = [2996, 1467, 1732, 1015]
+    seizures_ends = [3036, 1494, 1772, 1066]
+    build_vectors_with_seizures(file_names_with_seizures[:4], seizures_starts, seizures_ends, "chb01", folder_number=1)
+    build_vectors_with_seizures(file_names_with_seizures[4:], seizures_starts, seizures_ends, "chb01", folder_number=2)
+    file_names_without_seizures = ["01", "02"]
+    build_vectors_without_seizures(file_names=file_names_without_seizures, folder="chb01")
+
+
+def load_from_category_3():
+    file_names_with_seizures = ["01"]
+    seizures_starts = [362]
+    seizures_ends = [414]
+    build_vectors_with_seizures(file_names_with_seizures, seizures_starts, seizures_ends, "chb03", folder_number=3)
 
 
 load_from_category_1()
+load_from_category_2()
+load_from_category_3()
 print(final_data.shape)
-print(final_label)
+print(final_label.shape)
