@@ -3,8 +3,11 @@ import pyedflib
 import numpy as np
 import pickle
 
+from scipy.ndimage import rotate
+
 final_data = np.empty(shape=(0, 1280, 2))
 final_label = np.empty(shape=(0, 1))
+start_indexes = [2, 258, 514]
 
 
 def load_data(file_name):
@@ -23,32 +26,49 @@ def split_by_batch_size(arr, batch_size):
 
 def augment_vector(vector, label):
     global final_data, final_label
-    # Add random noise to the vector
-    noise = np.random.normal(0, 0.1, vector.shape)
-    final_data = np.vstack([final_data, vector + noise])
+    # Random Rotation
+    # specify a range of rotation angles in degrees
+    angles = np.arange(-30, 30, 5)
+    # select a random angle from the range
+    selected_angle = np.random.choice(angles)
+    rotated_vector = rotate(vector, selected_angle, axes=(1, 2), reshape=False)
+    final_data = np.vstack([final_data, rotated_vector])
     final_label = np.vstack([final_label, numpy.array([label])])
-    # Multiply the vector by a random scalar
-    scaled_vector = vector * np.random.uniform(0.5, 1.5)
+    # Scaling:
+    factors = np.arange(0.8, 1.2, 0.1)
+    # select a random factor from the range
+    selected_factor = np.random.choice(factors)
+    scaled_vector = selected_factor * vector
     final_data = np.vstack([final_data, scaled_vector])
     final_label = np.vstack([final_label, numpy.array([label])])
-    # Permute the elements of the vector
-    permuted_vector = np.random.permutation(vector)
-    final_data = np.vstack([final_data, permuted_vector])
+    # Flipping:
+    flipped_vector = np.fliplr(vector)
+    final_data = np.vstack([final_data, flipped_vector])
+    final_label = np.vstack([final_label, numpy.array([label])])
+    # Noise injection:
+    noise = np.random.rand(*vector.shape)
+    # specify a range of noise levels
+    levels = np.arange(0.05, 0.15, 0.01)
+    # select a random noise level from the range
+    selected_level = np.random.choice(levels)
+    # add noise to the vector
+    noisy_vector = vector + selected_level * noise
+    final_data = np.vstack([final_data, noisy_vector])
     final_label = np.vstack([final_label, numpy.array([label])])
 
 
-def cut_seizure_range(file_name, start, end, channel):
+def cut_seizure_range(file_name, start, end, channel, index):
     seizures_range_array = split_by_batch_size(
         load_data(file_name)[channel][start: end], 5)
-    splitted_array = seizures_range_array[2: 2 + 256]
+    splitted_array = seizures_range_array[start_indexes[index]: start_indexes[index] + 256]
     seizures_vector = np.concatenate(splitted_array)
     reshaped = seizures_vector.reshape(1, 1280)
     return reshaped
 
 
-def cut_normal_range(file_name, start, channel):
+def cut_normal_range(file_name, start, channel, index):
     normal_array = split_by_batch_size(load_data(file_name)[channel][start:], 5)[
-                   2: 2 + 256]
+                   start_indexes[index]: start_indexes[index] + 256]
     normal_vector = np.concatenate(normal_array)
     reshaped = normal_vector.reshape(1, 1280)
     return reshaped
@@ -58,46 +78,50 @@ def build_vectors_with_seizures(file_names, seizures_starts, seizures_ends, fold
     global final_data, final_label
     for file_index in range(0, len(file_names)):
         file_name = "Dataset/" + folder + "/" + folder + "_" + file_names[file_index] + ".edf"
-        seizure_vector_channel_17 = cut_seizure_range(file_name, seizures_starts[file_index] * 256,
-                                                      seizures_ends[file_index] * 256, 17)
-        seizure_vector_channel_18 = cut_seizure_range(file_name, seizures_starts[file_index] * 256,
-                                                      seizures_ends[file_index] * 256, 18)
-        seizures_vector = np.stack([seizure_vector_channel_17, seizure_vector_channel_18], axis=-1)
-        # add label and data to final array
-        final_data = np.vstack([final_data, seizures_vector])
-        final_label = np.vstack([final_label, numpy.array([1.0])])
-        # data augmentation for seizure vectors
-        augment_vector(seizures_vector, 1.0)
-        if folder_number == 1:
-            # find normal vectors from seizure files
-            normal_vector_channel_17 = cut_normal_range(file_name, seizures_ends[file_index] * 256, 17)
-            normal_vector_channel_18 = cut_normal_range(file_name, seizures_ends[file_index] * 256, 18)
-            normal_vector = np.stack([normal_vector_channel_17, normal_vector_channel_18], axis=-1)
-            final_data = np.vstack([final_data, normal_vector])
-            final_label = np.vstack([final_label, numpy.array([0.0])])
-            augment_vector(normal_vector, 0.0)
+        for i in range(0, 3):
+            seizure_vector_channel_17 = cut_seizure_range(file_name, seizures_starts[file_index] * 256,
+                                                          seizures_ends[file_index] * 256, 17, i)
+            seizure_vector_channel_18 = cut_seizure_range(file_name, seizures_starts[file_index] * 256,
+                                                          seizures_ends[file_index] * 256, 18, i)
+            seizures_vector = np.stack([seizure_vector_channel_17, seizure_vector_channel_18], axis=-1)
+            # add label and data to final array
+            final_data = np.vstack([final_data, seizures_vector])
+            final_label = np.vstack([final_label, numpy.array([1.0])])
+            # data augmentation for seizure vectors
+            augment_vector(seizures_vector, 1.0)
+            if folder_number == 1:
+                # find normal vectors from seizure files
+                normal_vector_channel_17 = cut_normal_range(file_name, seizures_ends[file_index] * 256, 17, i)
+                normal_vector_channel_18 = cut_normal_range(file_name, seizures_ends[file_index] * 256, 18, i)
+                normal_vector = np.stack([normal_vector_channel_17, normal_vector_channel_18], axis=-1)
+                final_data = np.vstack([final_data, normal_vector])
+                final_label = np.vstack([final_label, numpy.array([0.0])])
+                augment_vector(normal_vector, 0.0)
 
 
 def build_vectors_without_seizures(file_names, folder):
     global final_data, final_label
     for file_index in range(0, len(file_names)):
         file_name = "Dataset/" + folder + "/" + folder + "_" + file_names[file_index] + ".edf"
-        normal_vector_channel_17 = split_by_batch_size(load_data(file_name)[17], 5)[2:2 + 256]
-        reshaped_17 = np.concatenate(normal_vector_channel_17).reshape(1, 1280)
-        normal_vector_channel_18 = split_by_batch_size(load_data(file_name)[18], 5)[2:2 + 256]
-        reshaped_18 = np.concatenate(normal_vector_channel_18).reshape(1, 1280)
-        normal_vector = np.stack([reshaped_17, reshaped_18], axis=-1)
-        final_data = np.vstack([final_data, normal_vector])
-        final_label = np.vstack([final_label, numpy.array([0.0])])
-        augment_vector(normal_vector, 0.0)
+        for i in range(0, 3):
+            normal_vector_channel_17 = split_by_batch_size(load_data(file_name)[17], 5)[
+                                       start_indexes[i]:start_indexes[i] + 256]
+            reshaped_17 = np.concatenate(normal_vector_channel_17).reshape(1, 1280)
+            normal_vector_channel_18 = split_by_batch_size(load_data(file_name)[18], 5)[
+                                       start_indexes[i]:start_indexes[i] + 256]
+            reshaped_18 = np.concatenate(normal_vector_channel_18).reshape(1, 1280)
+            normal_vector = np.stack([reshaped_17, reshaped_18], axis=-1)
+            final_data = np.vstack([final_data, normal_vector])
+            final_label = np.vstack([final_label, numpy.array([0.0])])
+            augment_vector(normal_vector, 0.0)
 
 
 def load_from_category_2():
-    file_names_with_seizures = ["16", "19"]
+    file_names_with_seizures = ["16", "16+"]
     # Channel 17: FZ-CZ
     # Channel 18: CZ-PZ
-    seizures_starts = [130, 3369]
-    seizures_ends = [212, 3378]
+    seizures_starts = [130, 2972]
+    seizures_ends = [212, 3053]
     build_vectors_with_seizures(file_names_with_seizures, seizures_starts, seizures_ends, "chb02")
     file_names_without_seizures = ["08", "14"]
     build_vectors_without_seizures(file_names=file_names_without_seizures, folder="chb02")
@@ -122,10 +146,13 @@ def load_from_category_3():
     build_vectors_with_seizures(file_names_with_seizures, seizures_starts, seizures_ends, "chb03", folder_number=3)
 
 
-load_from_category_1()
-load_from_category_2()
-load_from_category_3()
-print(final_data.shape)
-print(final_label.shape)
-pickle.dump(final_data, open('x.pkl', 'wb'))
-pickle.dump(final_label, open('y.pkl', 'wb'))
+# load_from_category_1()
+# load_from_category_2()
+# load_from_category_3()
+# print(final_data.shape)
+# print(final_label.shape)
+# pickle.dump(final_data, open('x.pkl', 'wb'))
+# pickle.dump(final_label, open('y.pkl', 'wb'))
+x = pickle.load(open('x.pkl', 'rb'))
+y = pickle.load(open('y.pkl', 'rb'))
+print(y)
