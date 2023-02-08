@@ -11,10 +11,14 @@ from scipy.stats import stats
 from keras.models import Model
 from keras.layers import Conv1D, MaxPooling1D, Flatten, Dense, Input
 from keras.optimizers import Adam
+import matplotlib.pyplot as plt
+from IPython.display import clear_output
+from tensorflow.keras.callbacks import EarlyStopping
 
+early_stopping = EarlyStopping(monitor='val_loss', patience=10)
 # load dataset
-X = pickle.load(open('x.pkl', 'rb'))
-y = pickle.load(open('y.pkl', 'rb'))
+X = pickle.load(open('new_x.pkl', 'rb'))
+y = pickle.load(open('new_y.pkl', 'rb'))
 # generate a random permutation index
 permutation = np.random.permutation(X.shape[0])
 
@@ -88,6 +92,32 @@ def features_extraction(df):
     return df_features[0].to_list()
 
 
+class PlotLosses(tf.keras.callbacks.Callback):
+    def on_train_begin(self, logs={}):
+        self.i = 0
+        self.x = []
+        self.losses = []
+        self.val_losses = []
+
+        self.fig = plt.figure()
+
+        self.logs = []
+
+    def on_epoch_end(self, epoch, logs={}):
+        self.logs.append(logs)
+        self.x.append(self.i)
+        self.losses.append(logs.get('loss'))
+        self.val_losses.append(logs.get('val_loss'))
+        self.i += 1
+
+        clear_output(wait=True)
+        plt.plot(self.x, self.losses, label="loss")
+        plt.plot(self.x, self.val_losses, label="val_loss")
+        plt.legend()
+        plt.show();
+
+
+plot_losses = PlotLosses()
 features_x_train = np.empty(shape=(0, 15, 2))
 for item in X_train:
     channel_17 = item[..., 0]
@@ -131,8 +161,9 @@ outputs = keras.layers.Dense(1, activation='sigmoid')(x)
 model = keras.models.Model(inputs=[inputs, features_inputs], outputs=outputs)
 model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
 # fit the model
-model.fit([X_train, features_x_train], y_train, epochs=20, validation_data=([X_test, features_x_test], y_test))
+history = model.fit([X_train, features_x_train], y_train, epochs=10,
+                    validation_data=([X_test, features_x_test], y_test), callbacks=[early_stopping, plot_losses])
 y_pred = model.predict([X_test, features_x_test])
 print("Recall:", recall_score(y_test, y_pred.round()))
-print("Precisio:", precision_score(y_test, y_pred.round()))
-print("Accuracy:", accuracy_score(y_test, y_pred.round()))
+print("Precision:", precision_score(y_test, y_pred.round()))
+

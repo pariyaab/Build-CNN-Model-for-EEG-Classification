@@ -10,14 +10,26 @@ final_label = np.empty(shape=(0, 1))
 start_indexes = [2, 258, 514]
 
 
-def load_data(file_name):
-    f = pyedflib.EdfReader(file_name)
-    n = f.signals_in_file
-    signal_labels = f.getSignalLabels()
-    sigbufs = np.zeros((n, f.getNSamples()[0]))
-    for i in np.arange(n):
-        sigbufs[i, :] = f.readSignal(i)
-    return sigbufs
+# augmentation methods
+def add_noise(data, mean=0, std=0.1):
+    noise = np.random.normal(mean, std, data.shape)
+    augmented_data = data + noise
+    return augmented_data
+
+
+def scale(data, factor=0.9):
+    augmented_data = data * factor
+    return augmented_data
+
+
+def time_shift(data, shift=10):
+    augmented_data = np.roll(data, shift, axis=1)
+    return augmented_data
+
+
+def amplitude_scale(data, factor=0.9):
+    augmented_data = data * factor
+    return augmented_data
 
 
 def split_by_batch_size(arr, batch_size):
@@ -26,35 +38,28 @@ def split_by_batch_size(arr, batch_size):
 
 def augment_vector(vector, label):
     global final_data, final_label
-    # Random Rotation
-    # specify a range of rotation angles in degrees
-    angles = np.arange(-30, 30, 5)
-    # select a random angle from the range
-    selected_angle = np.random.choice(angles)
-    rotated_vector = rotate(vector, selected_angle, axes=(1, 2), reshape=False)
-    final_data = np.vstack([final_data, rotated_vector])
+    augmented_data = add_noise(vector)
+    final_data = np.vstack([final_data, augmented_data])
     final_label = np.vstack([final_label, numpy.array([label])])
-    # Scaling:
-    factors = np.arange(0.8, 1.2, 0.1)
-    # select a random factor from the range
-    selected_factor = np.random.choice(factors)
-    scaled_vector = selected_factor * vector
-    final_data = np.vstack([final_data, scaled_vector])
+    augmented_data = scale(vector)
+    final_data = np.vstack([final_data, augmented_data])
     final_label = np.vstack([final_label, numpy.array([label])])
-    # Flipping:
-    flipped_vector = np.fliplr(vector)
-    final_data = np.vstack([final_data, flipped_vector])
+    augmented_data = time_shift(vector)
+    final_data = np.vstack([final_data, augmented_data])
     final_label = np.vstack([final_label, numpy.array([label])])
-    # Noise injection:
-    noise = np.random.rand(*vector.shape)
-    # specify a range of noise levels
-    levels = np.arange(0.05, 0.15, 0.01)
-    # select a random noise level from the range
-    selected_level = np.random.choice(levels)
-    # add noise to the vector
-    noisy_vector = vector + selected_level * noise
-    final_data = np.vstack([final_data, noisy_vector])
+    augmented_data = amplitude_scale(vector)
+    final_data = np.vstack([final_data, augmented_data])
     final_label = np.vstack([final_label, numpy.array([label])])
+
+
+def load_data(file_name):
+    f = pyedflib.EdfReader(file_name)
+    n = f.signals_in_file
+    signal_labels = f.getSignalLabels()
+    sigbufs = np.zeros((n, f.getNSamples()[0]))
+    for i in np.arange(n):
+        sigbufs[i, :] = f.readSignal(i)
+    return sigbufs
 
 
 def cut_seizure_range(file_name, start, end, channel, index):
@@ -123,7 +128,7 @@ def load_from_category_2():
     seizures_starts = [130, 2972]
     seizures_ends = [212, 3053]
     build_vectors_with_seizures(file_names_with_seizures, seizures_starts, seizures_ends, "chb02")
-    file_names_without_seizures = ["08", "14"]
+    file_names_without_seizures = ["08", "14", "15"]
     build_vectors_without_seizures(file_names=file_names_without_seizures, folder="chb02")
 
 
@@ -135,7 +140,7 @@ def load_from_category_1():
     seizures_ends = [3036, 1494, 1772, 1066]
     build_vectors_with_seizures(file_names_with_seizures[:4], seizures_starts, seizures_ends, "chb01", folder_number=1)
     build_vectors_with_seizures(file_names_with_seizures[4:], seizures_starts, seizures_ends, "chb01", folder_number=2)
-    file_names_without_seizures = ["01", "02"]
+    file_names_without_seizures = ["01", "02", "06", "07", "08"]
     build_vectors_without_seizures(file_names=file_names_without_seizures, folder="chb01")
 
 
@@ -146,13 +151,10 @@ def load_from_category_3():
     build_vectors_with_seizures(file_names_with_seizures, seizures_starts, seizures_ends, "chb03", folder_number=3)
 
 
-# load_from_category_1()
-# load_from_category_2()
-# load_from_category_3()
-# print(final_data.shape)
-# print(final_label.shape)
-# pickle.dump(final_data, open('x.pkl', 'wb'))
-# pickle.dump(final_label, open('y.pkl', 'wb'))
-x = pickle.load(open('x.pkl', 'rb'))
-y = pickle.load(open('y.pkl', 'rb'))
-print(y)
+load_from_category_1()
+load_from_category_2()
+load_from_category_3()
+print(final_data.shape)
+print(final_label.shape)
+pickle.dump(final_data, open('new_x.pkl', 'wb'))
+pickle.dump(final_label, open('new_y.pkl', 'wb'))
