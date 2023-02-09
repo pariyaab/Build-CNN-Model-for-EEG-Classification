@@ -7,7 +7,7 @@ from scipy.ndimage import rotate
 
 final_data = np.empty(shape=(0, 1280, 2))
 final_label = np.empty(shape=(0, 1))
-start_indexes = [2, 258, 514]
+start_indexes = [2, 258, 514, 770, 1026]
 
 
 # augmentation methods
@@ -65,6 +65,7 @@ def load_data(file_name):
 def cut_seizure_range(file_name, start, end, channel, index):
     seizures_range_array = split_by_batch_size(
         load_data(file_name)[channel][start: end], 5)
+    print(len(seizures_range_array))
     splitted_array = seizures_range_array[start_indexes[index]: start_indexes[index] + 256]
     seizures_vector = np.concatenate(splitted_array)
     reshaped = seizures_vector.reshape(1, 1280)
@@ -83,7 +84,7 @@ def build_vectors_with_seizures(file_names, seizures_starts, seizures_ends, fold
     global final_data, final_label
     for file_index in range(0, len(file_names)):
         file_name = "Dataset/" + folder + "/" + folder + "_" + file_names[file_index] + ".edf"
-        for i in range(0, 3):
+        for i in range(0, 5):
             seizure_vector_channel_17 = cut_seizure_range(file_name, seizures_starts[file_index] * 256,
                                                           seizures_ends[file_index] * 256, 17, i)
             seizure_vector_channel_18 = cut_seizure_range(file_name, seizures_starts[file_index] * 256,
@@ -108,17 +109,24 @@ def build_vectors_without_seizures(file_names, folder):
     global final_data, final_label
     for file_index in range(0, len(file_names)):
         file_name = "Dataset/" + folder + "/" + folder + "_" + file_names[file_index] + ".edf"
-        for i in range(0, 3):
-            normal_vector_channel_17 = split_by_batch_size(load_data(file_name)[17], 5)[
-                                       start_indexes[i]:start_indexes[i] + 256]
+        # normal_vector_channel_17 = split_by_batch_size(load_data(file_name)[17], 5)[
+        #                            start_indexes[i]:start_indexes[i] + 256]
+        splitted_array_17 = split_by_batch_size(load_data(file_name)[17], 5)
+        splitted_array_18 = split_by_batch_size(load_data(file_name)[18], 5)
+        index = 0
+        start_index = 2
+        while index <= 50:
+            end_index = start_index + 256
+            normal_vector_channel_17 = splitted_array_17[start_index: end_index]
             reshaped_17 = np.concatenate(normal_vector_channel_17).reshape(1, 1280)
-            normal_vector_channel_18 = split_by_batch_size(load_data(file_name)[18], 5)[
-                                       start_indexes[i]:start_indexes[i] + 256]
+            normal_vector_channel_18 = splitted_array_18[start_index: end_index]
             reshaped_18 = np.concatenate(normal_vector_channel_18).reshape(1, 1280)
             normal_vector = np.stack([reshaped_17, reshaped_18], axis=-1)
             final_data = np.vstack([final_data, normal_vector])
             final_label = np.vstack([final_label, numpy.array([0.0])])
             augment_vector(normal_vector, 0.0)
+            index += 1
+            start_index = end_index
 
 
 def load_from_category_2():
@@ -156,5 +164,5 @@ load_from_category_2()
 load_from_category_3()
 print(final_data.shape)
 print(final_label.shape)
-pickle.dump(final_data, open('new_x.pkl', 'wb'))
-pickle.dump(final_label, open('new_y.pkl', 'wb'))
+pickle.dump(final_data, open('new_2_x.pkl', 'wb'))
+pickle.dump(final_label, open('new_2_y.pkl', 'wb'))

@@ -1,6 +1,6 @@
 # Build-CNN-Model-for-EEG-Classification
 The target of this project is to build a model that can recognize seizure from signals.
-the process will be described bellow:
+the process will be described below:
 
 ### 1. Loading Dataset
 In this project, first, we load a dataset from the three first folders of this source: https://physionet.org/content/chbmit/1.0.0/ 
@@ -30,7 +30,7 @@ FEATURES = ['MIN', 'MAX', 'MEAN', 'RMS', 'VAR', 'STD', 'POWER', 'PEAK', 'P2P', '
 Now we should build the model with 3 Conv1D layers and 2 Dense layers and also check alternatives.   
 In the following step, we should concatenate our features (300,15,2) with the feature that our model have extracted. After that we should pass unique vectors to the classification layer in order to predict our labels.
 
-### 3. Results
+### 3. Results for 300 vectors
 in each iteration data are shuffled.
 * after 20 epochs (3 Conv1D and 2 Dense layer and kernel = 5):
   * Accuracy : 61%
@@ -49,3 +49,20 @@ in each iteration data are shuffled.
   * Recall: 0.58
   * Precision: 0.78
   ![img_2.png](img_2.png)
+    
+### 3. Results for 2240 vectors
+in each iteration data are shuffled.
+* after 20 epochs (3 Conv1D and 2 Dense layer and kernel = 5):
+  * Accuracy : 87%
+  * Recall: 0.94
+  * Precision: 0.45
+    
+* after 20 epochs (2 Conv1D and 2 Dense layer and kernel = 3):
+  * Accuracy : 80%
+  * Recall: 0.70
+  * Precision: 27%
+  
+* after 20 epochs (3 Conv1D and 1 Dense layer and kernel = 5):
+  * Accuracy : 75%
+  * Recall: 0.58
+  * Precision: 0.78
