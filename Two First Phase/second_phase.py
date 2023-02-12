@@ -188,8 +188,8 @@ def calculate_accuracy(x_test, y_test, cluster_centers):
             x_test_labels.append(first_cluster_classification.predict(test_data))
         elif nearest_cluster == 1:
             x_test_labels.append(second_cluster_classification.predict(test_data))
-        # elif nearest_cluster == 2:
-        #     x_test_labels.append(third_cluster_classification.predict(test_data))
+        elif nearest_cluster == 2:
+            x_test_labels.append(third_cluster_classification.predict(test_data))
     print(accuracy_score(x_test_labels, y_test))
 
 
@@ -229,7 +229,7 @@ for train_index, test_index in kfold.split(features_x):
 new_feature_x_train = numpy.array(filter_feature_vector(X_train, saved_index))
 # data = list(zip(new_feature_x_train, y_train))
 # print(np.unique(list(map(len, y_train))))
-k_means = KMeans(n_clusters=2)
+k_means = KMeans(n_clusters=3)
 k_means.fit(new_feature_x_train)
 # kmedoids = KMedoids(n_clusters=3, random_state=0).fit(new_feature_x_train)
 
@@ -238,8 +238,8 @@ first_cluster_classification = build_classification_per_cluster(new_feature_x_tr
 second_cluster_classification = build_classification_per_cluster(new_feature_x_train, y_train,
                                                                  cluster_indices_comp(1, k_means.labels_))
 
-# third_cluster_classification = build_classification_per_cluster(new_feature_x_train, y_train,
-#                                                                 cluster_indices_comp(2, k_means.labels_))
+third_cluster_classification = build_classification_per_cluster(new_feature_x_train, y_train,
+                                                                cluster_indices_comp(2, k_means.labels_))
 
 new_feature_x_test = np.array(filter_feature_vector(X_test, given_index=saved_index))
 calculate_accuracy(new_feature_x_test, y_test, k_means.cluster_centers_)

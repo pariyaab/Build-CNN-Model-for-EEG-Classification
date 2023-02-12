@@ -29,27 +29,7 @@ FEATURES = ['MIN', 'MAX', 'MEAN', 'RMS', 'VAR', 'STD', 'POWER', 'PEAK', 'P2P', '
             'MAX_f', 'SUM_f', 'MEAN_f', 'VAR_f', 'PEAK_f']  
 Now we should build the model with 3 Conv1D layers and 2 Dense layers and also check alternatives.   
 In the following step, we should concatenate our features (300,15,2) with the feature that our model have extracted. After that we should pass unique vectors to the classification layer in order to predict our labels.
-
-### 3. Results for 300 vectors
-in each iteration data are shuffled.
-* after 20 epochs (3 Conv1D and 2 Dense layer and kernel = 5):
-  * Accuracy : 61%
-  * Recall: 0.82
-  * Precision: 0.5
-  ![img.png](img.png)
-    
-* after 20 epochs (2 Conv1D and 2 Dense layer and kernel = 3):
-  * Accuracy : 80%
-  * Recall: 0.51
-  * Precision: 1.0
-  ![img_1.png](img_1.png)
-  
-* after 20 epochs (3 Conv1D and 1 Dense layer and kernel = 5):
-  * Accuracy : 75%
-  * Recall: 0.58
-  * Precision: 0.78
-  ![img_2.png](img_2.png)
-    
+ 
 ### 3. Results for 2240 vectors
 in each iteration data are shuffled.
 * after 20 epochs (3 Conv1D and 2 Dense layer and kernel = 5):

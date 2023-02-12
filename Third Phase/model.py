@@ -1,6 +1,7 @@
 import pickle
 
 import keras
+from keras.metrics import metrics
 from sklearn.metrics import recall_score, precision_score, accuracy_score
 from sklearn.model_selection import train_test_split, KFold
 import numpy as np
@@ -36,6 +37,10 @@ print(X_train.shape)
 print(X_test.shape)
 FEATURES = ['MIN', 'MAX', 'MEAN', 'RMS', 'VAR', 'STD', 'POWER', 'PEAK', 'P2P', 'CREST FACTOR',
             'MAX_f', 'SUM_f', 'MEAN_f', 'VAR_f', 'PEAK_f']
+
+
+def split_by_batch_size(arr, batch_size):
+    return np.array_split(arr, (arr.shape[0] / batch_size))
 
 
 def features_extraction(df):
@@ -167,3 +172,25 @@ y_pred = model.predict([X_test, features_x_test])
 print("Recall:", recall_score(y_test, y_pred.round()))
 print("Precision:", precision_score(y_test, y_pred.round()))
 
+confusion_matrix = metrics.confusion_matrix(y_test, y_pred.round())
+cm_display = metrics.ConfusionMatrixDisplay(confusion_matrix=confusion_matrix, display_labels=[0., 1.])
+cm_display.plot()
+plt.show()
+
+# calculate the other metrics
+splitted_array_test = split_by_batch_size(X_test,5)
+splitted_array_features = split_by_batch_size(features_x_test,5)
+new_prediction = np.empty(shape=(0, 1))
+for i in range(0 , len(splitted_array_test)):
+  batch_test_array = splitted_array_test[i]
+  batch_fetures = splitted_array_features[i]
+  y_pred = model.predict([batch_test_array, batch_fetures])
+  values, counts = np.unique(y_pred.round(), return_counts=True)
+  ind = np.argmax(counts)
+  new_prediction = np.vstack([new_prediction, np.array([values[ind]])])
+  new_prediction = np.vstack([new_prediction, np.array([values[ind]])])
+  new_prediction = np.vstack([new_prediction, np.array([values[ind]])])
+  new_prediction = np.vstack([new_prediction, np.array([values[ind]])])
+  new_prediction = np.vstack([new_prediction, np.array([values[ind]])])
+
+print("Accuracy:", accuracy_score(y_test, new_prediction))

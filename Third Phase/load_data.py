@@ -7,49 +7,11 @@ from scipy.ndimage import rotate
 
 final_data = np.empty(shape=(0, 1280, 2))
 final_label = np.empty(shape=(0, 1))
-start_indexes = [2, 258, 514, 770, 1026]
-
-
-# augmentation methods
-def add_noise(data, mean=0, std=0.1):
-    noise = np.random.normal(mean, std, data.shape)
-    augmented_data = data + noise
-    return augmented_data
-
-
-def scale(data, factor=0.9):
-    augmented_data = data * factor
-    return augmented_data
-
-
-def time_shift(data, shift=10):
-    augmented_data = np.roll(data, shift, axis=1)
-    return augmented_data
-
-
-def amplitude_scale(data, factor=0.9):
-    augmented_data = data * factor
-    return augmented_data
+start_indexes = [2, 258, 514, 770, 1026, 1282]
 
 
 def split_by_batch_size(arr, batch_size):
     return np.array_split(arr, (arr.shape[0] / batch_size) + 1)
-
-
-def augment_vector(vector, label):
-    global final_data, final_label
-    augmented_data = add_noise(vector)
-    final_data = np.vstack([final_data, augmented_data])
-    final_label = np.vstack([final_label, numpy.array([label])])
-    augmented_data = scale(vector)
-    final_data = np.vstack([final_data, augmented_data])
-    final_label = np.vstack([final_label, numpy.array([label])])
-    augmented_data = time_shift(vector)
-    final_data = np.vstack([final_data, augmented_data])
-    final_label = np.vstack([final_label, numpy.array([label])])
-    augmented_data = amplitude_scale(vector)
-    final_data = np.vstack([final_data, augmented_data])
-    final_label = np.vstack([final_label, numpy.array([label])])
 
 
 def load_data(file_name):
@@ -65,7 +27,6 @@ def load_data(file_name):
 def cut_seizure_range(file_name, start, end, channel, index):
     seizures_range_array = split_by_batch_size(
         load_data(file_name)[channel][start: end], 5)
-    print(len(seizures_range_array))
     splitted_array = seizures_range_array[start_indexes[index]: start_indexes[index] + 256]
     seizures_vector = np.concatenate(splitted_array)
     reshaped = seizures_vector.reshape(1, 1280)
@@ -84,17 +45,18 @@ def build_vectors_with_seizures(file_names, seizures_starts, seizures_ends, fold
     global final_data, final_label
     for file_index in range(0, len(file_names)):
         file_name = "Dataset/" + folder + "/" + folder + "_" + file_names[file_index] + ".edf"
-        for i in range(0, 5):
-            seizure_vector_channel_17 = cut_seizure_range(file_name, seizures_starts[file_index] * 256,
-                                                          seizures_ends[file_index] * 256, 17, i)
-            seizure_vector_channel_18 = cut_seizure_range(file_name, seizures_starts[file_index] * 256,
-                                                          seizures_ends[file_index] * 256, 18, i)
-            seizures_vector = np.stack([seizure_vector_channel_17, seizure_vector_channel_18], axis=-1)
-            # add label and data to final array
-            final_data = np.vstack([final_data, seizures_vector])
-            final_label = np.vstack([final_label, numpy.array([1.0])])
-            # data augmentation for seizure vectors
-            augment_vector(seizures_vector, 1.0)
+        for i in range(0, 6):
+            try:
+                seizure_vector_channel_17 = cut_seizure_range(file_name, seizures_starts[file_index] * 256,
+                                                              seizures_ends[file_index] * 256, 17, i)
+                seizure_vector_channel_18 = cut_seizure_range(file_name, seizures_starts[file_index] * 256,
+                                                              seizures_ends[file_index] * 256, 18, i)
+                seizures_vector = np.stack([seizure_vector_channel_17, seizure_vector_channel_18], axis=-1)
+                # add label and data to final array
+                final_data = np.vstack([final_data, seizures_vector])
+                final_label = np.vstack([final_label, numpy.array([1.0])])
+            except:
+                print("skip")
             if folder_number == 1:
                 # find normal vectors from seizure files
                 normal_vector_channel_17 = cut_normal_range(file_name, seizures_ends[file_index] * 256, 17, i)
@@ -102,15 +64,12 @@ def build_vectors_with_seizures(file_names, seizures_starts, seizures_ends, fold
                 normal_vector = np.stack([normal_vector_channel_17, normal_vector_channel_18], axis=-1)
                 final_data = np.vstack([final_data, normal_vector])
                 final_label = np.vstack([final_label, numpy.array([0.0])])
-                augment_vector(normal_vector, 0.0)
 
 
 def build_vectors_without_seizures(file_names, folder):
     global final_data, final_label
     for file_index in range(0, len(file_names)):
         file_name = "Dataset/" + folder + "/" + folder + "_" + file_names[file_index] + ".edf"
-        # normal_vector_channel_17 = split_by_batch_size(load_data(file_name)[17], 5)[
-        #                            start_indexes[i]:start_indexes[i] + 256]
         splitted_array_17 = split_by_batch_size(load_data(file_name)[17], 5)
         splitted_array_18 = split_by_batch_size(load_data(file_name)[18], 5)
         index = 0
@@ -124,7 +83,6 @@ def build_vectors_without_seizures(file_names, folder):
             normal_vector = np.stack([reshaped_17, reshaped_18], axis=-1)
             final_data = np.vstack([final_data, normal_vector])
             final_label = np.vstack([final_label, numpy.array([0.0])])
-            augment_vector(normal_vector, 0.0)
             index += 1
             start_index = end_index
 
@@ -153,9 +111,9 @@ def load_from_category_1():
 
 
 def load_from_category_3():
-    file_names_with_seizures = ["01"]
-    seizures_starts = [362]
-    seizures_ends = [414]
+    file_names_with_seizures = ["01", "02", "03"]
+    seizures_starts = [362, 731, 432]
+    seizures_ends = [414, 796, 501]
     build_vectors_with_seizures(file_names_with_seizures, seizures_starts, seizures_ends, "chb03", folder_number=3)
 
 
